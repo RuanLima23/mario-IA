@@ -1,32 +1,37 @@
+# Imports do emulador
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
+# Biblioteca random, nos ajudará a randomizar certas etapas
 import random
 
-# Definindo as ações disponíveis como lista
-ACTIONS = list(range(len(SIMPLE_MOVEMENT)))
+# Definindo as ações como lista
+actions = list(range(len(SIMPLE_MOVEMENT)))
 
-# Classe para representar um indivíduo
-class Individuo:
+# Classe para representar um indivíduo ou solução
+class Solution:
     def __init__(self, cromossomo_length):
         self.cromossomo_length = cromossomo_length
-        self.cromossomo = [random.choice(ACTIONS) for _ in range(cromossomo_length)]
+        # Aleatorizando uma ação com o choice
+        self.cromossomo = [random.choice(actions) for i in range(cromossomo_length)]
+        # Representa sua avaliação, quanto maior, mais chances de ser escolhido
         self.fitness = 0
 
 # Função para avaliar um indivíduo
 
 def avaliar(individuo, env):
     observation = env.reset()
+    # print(observation)
     done = False
     fitness = 0
     for gene in individuo.cromossomo:
-        action = SIMPLE_MOVEMENT[gene]
-        print(action)
+        action = gene  # Use a ação diretamente
         observation, reward, done, info = env.step(action)
         fitness += reward
         if done:
             break
     individuo.fitness = fitness
+
 
 
 
@@ -39,9 +44,12 @@ def selecao(populacao, n_melhores):
 
 # Função para realizar o cruzamento de dois indivíduos
 def crossover(individuo1, individuo2):
+    if len(individuo1.cromossomo) <= 1 or len(individuo2.cromossomo) <= 1:
+        return individuo1, individuo2
+
     ponto_corte = random.randint(1, len(individuo1.cromossomo) - 1)
-    filho1 = Individuo(len(individuo1.cromossomo))
-    filho2 = Individuo(len(individuo2.cromossomo))
+    filho1 = Solution(len(individuo1.cromossomo))
+    filho2 = Solution(len(individuo2.cromossomo))
     filho1.cromossomo = individuo1.cromossomo[:ponto_corte] + individuo2.cromossomo[ponto_corte:]
     filho2.cromossomo = individuo2.cromossomo[:ponto_corte] + individuo1.cromossomo[ponto_corte:]
     return filho1, filho2
@@ -51,7 +59,7 @@ def crossover(individuo1, individuo2):
 def mutacao(individuo, taxa_mutacao):
     for i in range(len(individuo.cromossomo)):
         if random.uniform(0, 1) < taxa_mutacao:
-            individuo.cromossomo[i] = random.choice(ACTIONS)
+            individuo.cromossomo[i] = random.choice(actions)
 
 
 # Função principal para resolver o problema usando algoritmo genético
@@ -59,7 +67,7 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
     env = gym_super_mario_bros.make('SuperMarioBros-1-2-v1', apply_api_compatibility=True, render_mode="human")
     env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
-    populacao = [Individuo(len(SIMPLE_MOVEMENT[0])) for _ in range(tamanho_populacao)]
+    populacao = [Solution(len(SIMPLE_MOVEMENT[0])) for _ in range(tamanho_populacao)]
 
     for geracao in range(numero_geracoes):
         for individuo in populacao:
@@ -88,7 +96,7 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
 # Parâmetros do algoritmo genético
 tamanho_populacao = 50
 taxa_mutacao = 0.1
-numero_geracoes = 20
+numero_geracoes = 100
 
 # Executar o algoritmo genético
 resolver(tamanho_populacao, taxa_mutacao, numero_geracoes)

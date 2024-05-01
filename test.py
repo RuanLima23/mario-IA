@@ -19,6 +19,7 @@ class Solution:
 
 # Função para avaliar um indivíduo
 
+
 def avaliar(individuo, env):
     observation = env.reset()
     # print(observation)

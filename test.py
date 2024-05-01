@@ -13,7 +13,6 @@ class Individuo:
         self.cromossomo = [random.choice(ACTIONS) for _ in range(cromossomo_length)]
         self.fitness = 0
 
-
 # Função para avaliar um indivíduo
 
 def avaliar(individuo, env):

@@ -1,0 +1,1 @@
+# Função para recuperar os logs salvos da ultima geração para rodar o jogo

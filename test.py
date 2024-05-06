@@ -7,6 +7,25 @@ import random
 # Import da biblioteca OS para criar arquivos de logs de treinamento
 import os
 
+# Criando a pasta de logs
+pasta_log = "./logs-treinamentos"
+# Verifica se a pasta de log existe, senão a cria
+if not os.path.exists(pasta_log):
+    os.makedirs(pasta_log)
+
+# Obtém o número do último treinamento realizado para gerar o nome do próximo arquivo de log
+ultimo_treinamento = 0
+for filename in os.listdir(pasta_log):
+    if filename.startswith("log-"):
+        numero_treinamento = int(filename.split("-")[-1].split(".")[0])
+        if numero_treinamento > ultimo_treinamento:
+            ultimo_treinamento = numero_treinamento
+
+# Incrementa o número do último treinamento para gerar o nome do próximo arquivo de log
+proximo_treinamento = ultimo_treinamento + 1
+nome_arquivo_log = f"log-{proximo_treinamento}.txt"
+caminho_arquivo_log = os.path.join(pasta_log, nome_arquivo_log)
+
 # Definindo as ações como lista
 actions = list(range(len(SIMPLE_MOVEMENT)))
 
@@ -16,10 +35,11 @@ class Solution:
         # Verifica se foi passado algum cromossomo
         if cromossomo:
             self.cromossomo = cromossomo
-        # Se não, então irá gerar um array de 100 ações que será nosso cromossomo inicial
-        # Se não fizermos isso, o fitness dificilmente aumentará,e o treinamento ficará mais lento
+        # Se não, então irá gerar um array de 8000 ações que será nosso cromossomo inicial
+        # A cada 1 segundo 20 ações são realizadas, o tempo da fase é 400 segundos
+        # Portanto 20 x 400 = 8000 posições
         else:
-            self.cromossomo = [random.choice(actions) for i in range(100)]
+            self.cromossomo = [random.choice(actions) for i in range(8000)]
         self.fitness = 0
 
 
@@ -48,34 +68,72 @@ def avaliar(individuo, env):
 
         # Atualizando o fitness com base nas informações do ambiente
         # Reward vai variar entre numeros positivos e negativos, pois representa a recompensa recebida após executar a ação.
-        fitness += reward
-        # Score se resume em derrotar inimigos
-        fitness += info['score'] / 10
-        # Coins se resume a coleta de moedas
-        fitness += info['coins'] * 10
 
-        # Podemos diminuir o fitness com perdas de vida
-        if info['life'] < 2:
-            fitness -= 100
+        if info['flag_get'] == True:
+            fitness += 10000
 
-        # Podemos diminuir o fitness se o personagem não avançar o suficiente pelo mapa
+        # Podemos aumentar o fitness se o personagem avançar pelo mapa
+        if info['x_pos'] < 300:
+            fitness += 10
+
+        if info['x_pos'] < 200:
+            fitness += 50
+
         if info['x_pos'] < 100:
-            fitness -= 50
+            fitness += 100
+
+        if info['x_pos'] < 50:
+            fitness += 150
+
+        if info['x_pos'] < 25:
+            fitness += 200
+
+        if info['x_pos'] < 10:
+            fitness += 250
 
         # Renderiza o jogo
         env.render()
 
     # No final, atribuímos o valor total do fitness
     individuo.fitness = fitness
+    # print(individuo, f"Fitness do individuo {individuo.fitness}: ", fitness)
+
+
+# Encontra o melhor indivíuo para a reprodução
+def encontrar_melhor_fitness(populacao):
+    melhor_individuo = None
+    melhor_fitness = 0
+
+    # Itera sobre a população para encontrar o indivíduo com o melhor fitness
+    for individuo in populacao:
+        if individuo.fitness > melhor_fitness:
+            melhor_fitness = individuo.fitness
+            melhor_individuo = individuo
+
+    return melhor_individuo
 
 
 # Função para realizar a seleção dos melhores indivíduos
 def selecao(populacao, melhores):
-    # Utilizamos o sorted para ordenar a população de acordo com o fitness
-    # Utilizamos a função lambda para especificar a chave de ordenamento dos elementos, que nesse caso é o fitness
-    populacao_ordenada = sorted(populacao, key=lambda x: x.fitness, reverse=True)
-    # Retorna os melhores indivíduos ordenados
-    return populacao_ordenada[:melhores]
+    # Encontra o melhor indivíduo na população
+    melhor_individuo = encontrar_melhor_fitness(populacao)
+
+    # Inicializa a lista de melhores indivíduos com o melhor indivíduo encontrado
+    melhores_individuos = [melhor_individuo]
+
+    # Se a quantidade de melhores indivíduos for menor que o valor especificado,
+    # preenche com os indivíduos restantes da população, excluindo o melhor indivíduo
+    if melhores > 1:
+        restantes = melhores - 1
+        populacao_ordenada = sorted(populacao, key=lambda x: x.fitness, reverse=True)
+        for individuo in populacao_ordenada:
+            if individuo != melhor_individuo:
+                melhores_individuos.append(individuo)
+                restantes -= 1
+            if restantes == 0:
+                break
+
+    return melhores_individuos
 
 
 # Função para realizar o cruzamento de dois indivíduos
@@ -106,23 +164,7 @@ def mutacao(individuo, taxa_mutacao):
             individuo.cromossomo[i] = random.choice(actions)
 
 # Função para iniciar o treinamento
-def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes, pasta_log):
-    # Verifica se a pasta de log existe, senão a cria
-    if not os.path.exists(pasta_log):
-        os.makedirs(pasta_log)
-
-    # Obtém o número do último treinamento realizado para gerar o nome do próximo arquivo de log
-    ultimo_treinamento = 0
-    for filename in os.listdir(pasta_log):
-        if filename.startswith("log-"):
-            numero_treinamento = int(filename.split("-")[-1].split(".")[0])
-            if numero_treinamento > ultimo_treinamento:
-                ultimo_treinamento = numero_treinamento
-
-    # Incrementa o número do último treinamento para gerar o nome do próximo arquivo de log
-    proximo_treinamento = ultimo_treinamento + 1
-    nome_arquivo_log = f"log-treinamento{proximo_treinamento}.txt"
-    caminho_arquivo_log = os.path.join(pasta_log, nome_arquivo_log)
+def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
 
     # Criando o ambiente do emulador
     env = gym_super_mario_bros.make('SuperMarioBros-1-2-v0')
@@ -131,41 +173,16 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes, pasta_log):
     # Iniciamos a população com indivíduos aleatorios
     populacao = [Solution() for i in range(tamanho_populacao)]
 
+
     # Abre o arquivo de log para escrita
-    with open(caminho_arquivo_log, 'w') as log_file:
+    with open(caminho_arquivo_log, 'w', encoding='utf-8') as log_file:
+        # Mostra quantas gerações tem o treinamento
+        log_file.write(f"Número de Gerações nesse treinamento: {numero_geracoes}\n")
         # Iteramos sobre o número de gerações
         for geracao in range(numero_geracoes):
             # Iteramos sobre os indivíduos dentro da população
             for individuo in populacao:
                 avaliar(individuo, env)
-
-            # Selecionamos os melhores para reprodução
-            melhores = selecao(populacao, int(0.2 * tamanho_populacao))
-
-            # Nova população é criada a partir da seleção dos melhores
-            nova_populacao = melhores[:]
-
-            # Preenchemos a nova população com cruzamento e mutação até atingir o tamanho da população original
-            while len(nova_populacao) < tamanho_populacao:
-                if melhores:
-                    # Escolhemos aleatoriamente dois pais da lista dos melhores indivíduos
-                    pai1 = random.choice(melhores)
-                    pai2 = random.choice(melhores)
-                else:
-                    # Se não houver indivíduos na lista de melhores, criamos novos indivíduos aleatórios
-                    pai1 = Solution()
-                    pai2 = Solution()
-
-                # Cruzamento entre os cromossomos selecionados
-                filho1, filho2 = crossover(pai1, pai2)
-                # Mutação nos cromossomos gerados
-                mutacao(filho1, taxa_mutacao)
-                mutacao(filho2, taxa_mutacao)
-                # Adicionamos os novos cromossomos a nova população
-                nova_populacao.extend([filho1, filho2])
-
-            # Próxima geração
-            populacao = nova_populacao
 
             melhor_fitness = max(populacao, key=lambda x: x.fitness).fitness
             # Log dos melhores fitness para controle
@@ -177,15 +194,40 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes, pasta_log):
             # Adicionar os dados de cada indivíduo na geração ao arquivo de log
             for i, individuo in enumerate(populacao):
                 log_file.write(f"Indivíduo {i}: Fitness -> {individuo.fitness}, Cromossomo -> {individuo.cromossomo}\n")
+                log_file.write('\n')
+
+            # Selecionamos os melhores para reprodução
+            melhores = selecao(populacao, int(0.2 * tamanho_populacao))
+            print("Melhores: ",melhores)
+
+            # Nova população é criada a partir da seleção dos melhores
+            nova_populacao = melhores[:]
+
+            # Preenchemos a nova população com cruzamento e mutação até atingir o tamanho da população original
+            while len(nova_populacao) < tamanho_populacao:
+                if melhores:
+                    pai1 = random.choice(melhores)
+                    pai2 = random.choice(melhores)
+                else:
+                    pai1 = Solution()
+                    pai2 = Solution()
+
+                filho1, filho2 = crossover(pai1, pai2)
+                mutacao(filho1, taxa_mutacao)
+                mutacao(filho2, taxa_mutacao)
+                nova_populacao.extend([filho1, filho2])
+
+            # Próxima geração
+            populacao = nova_populacao
 
     # Encerra o emulador
     env.close()
 
+
 # Parâmetros do algoritmo genético
-tamanho_populacao = 10
+tamanho_populacao = 2
 taxa_mutacao = 0.1
-numero_geracoes = 190
-pasta_log = "./logs-treinamentos"
+numero_geracoes = 1
 
 # Executar o algoritmo genético
-resolver(tamanho_populacao, taxa_mutacao, numero_geracoes, pasta_log)
+resolver(tamanho_populacao, taxa_mutacao, numero_geracoes)

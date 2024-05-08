@@ -1,30 +1,17 @@
-# Import do emulador
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
 from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
-# Import da biblioteca random que será util para gerar valores aleatórios em certos pontos
 import random
-# Import da biblioteca OS para criar arquivos de logs de treinamento
 import os
+import matplotlib.pyplot as plt
 
-# Criando a pasta de logs
-pasta_log = "./logs-treinamentos"
-# Verifica se a pasta de log existe, senão a cria
-if not os.path.exists(pasta_log):
-    os.makedirs(pasta_log)
-
-# Obtém o número do último treinamento realizado para gerar o nome do próximo arquivo de log
-ultimo_treinamento = 0
-for filename in os.listdir(pasta_log):
-    if filename.startswith("log-"):
-        numero_treinamento = int(filename.split("-")[-1].split(".")[0])
-        if numero_treinamento > ultimo_treinamento:
-            ultimo_treinamento = numero_treinamento
-
-# Incrementa o número do último treinamento para gerar o nome do próximo arquivo de log
-proximo_treinamento = ultimo_treinamento + 1
-nome_arquivo_log = f"log-{proximo_treinamento}.txt"
-caminho_arquivo_log = os.path.join(pasta_log, nome_arquivo_log)
+# Criando a pasta de logs e gráficos
+pasta_logs = "./logs-treinamentos"
+pasta_graficos = "./graficos"
+if not os.path.exists(pasta_logs):
+    os.makedirs(pasta_logs)
+if not os.path.exists(pasta_graficos):
+    os.makedirs(pasta_graficos)
 
 # Definindo as ações como lista
 actions = list(range(len(SIMPLE_MOVEMENT)))
@@ -42,7 +29,6 @@ class Solution:
             self.cromossomo = [random.choice(actions) for i in range(8000)]
         self.fitness = 0
 
-
 # Função para avaliar um indivíduo
 def avaliar(individuo, env):
     observation = env.reset()
@@ -56,7 +42,7 @@ def avaliar(individuo, env):
     while not done:
         # Obtemos a ação do cromossomo atual
         action = individuo.cromossomo[cromossomo_index]
-        # Imcrementamos para a próxima ação do cromossomo
+        # Incrementamos para a próxima ação do cromossomo
         cromossomo_index += 1
 
         # Se chegarmos ao final das ações do cromossomo, ele será reiniciado
@@ -67,8 +53,6 @@ def avaliar(individuo, env):
         observation, reward, done, info = env.step(action)
 
         # Atualizando o fitness com base nas informações do ambiente
-        # Reward vai variar entre numeros positivos e negativos, pois representa a recompensa recebida após executar a ação.
-
         if info['flag_get'] == True:
             fitness += 10000
 
@@ -96,10 +80,8 @@ def avaliar(individuo, env):
 
     # No final, atribuímos o valor total do fitness
     individuo.fitness = fitness
-    # print(individuo, f"Fitness do individuo {individuo.fitness}: ", fitness)
 
-
-# Encontra o melhor indivíuo para a reprodução
+# Encontra o melhor indivíduo para a reprodução
 def encontrar_melhor_fitness(populacao):
     melhor_individuo = None
     melhor_fitness = 0
@@ -111,7 +93,6 @@ def encontrar_melhor_fitness(populacao):
             melhor_individuo = individuo
 
     return melhor_individuo
-
 
 # Função para realizar a seleção dos melhores indivíduos
 def selecao(populacao, melhores):
@@ -134,7 +115,6 @@ def selecao(populacao, melhores):
                 break
 
     return melhores_individuos
-
 
 # Função para realizar o cruzamento de dois indivíduos
 def crossover(individuo1, individuo2):
@@ -160,7 +140,7 @@ def mutacao(individuo, taxa_mutacao):
     # Percorre todas as ações do cromossomo, se alguma cair menor que 0,1 então sofrerá mutação
     for i in range(len(individuo.cromossomo)):
         if random.uniform(0, 1) < taxa_mutacao:
-            # Se sofrer adicionamos uma ação aleatória
+            # Se sofrer, adicionamos uma ação aleatória
             individuo.cromossomo[i] = random.choice(actions)
 
 # Função para iniciar o treinamento
@@ -170,14 +150,29 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
     env = gym_super_mario_bros.make('SuperMarioBros-1-2-v0')
     env = JoypadSpace(env, SIMPLE_MOVEMENT)
 
-    # Iniciamos a população com indivíduos aleatorios
+    # Iniciamos a população com indivíduos aleatórios
     populacao = [Solution() for i in range(tamanho_populacao)]
 
+    # Obtém o número do último treinamento realizado para gerar o nome do próximo arquivo de log
+    ultimo_treinamento = 0
+    for filename in os.listdir(pasta_logs):
+        if filename.startswith("log-"):
+            numero_treinamento = int(filename.split("-")[-1].split(".")[0])
+            if numero_treinamento > ultimo_treinamento:
+                ultimo_treinamento = numero_treinamento
+
+    # Incrementa o número do último treinamento para gerar o nome do próximo arquivo de log
+    proximo_treinamento = ultimo_treinamento + 1
+    nome_arquivo_log = f"log-{proximo_treinamento}.txt"
+    caminho_arquivo_log = os.path.join(pasta_logs, nome_arquivo_log)
 
     # Abre o arquivo de log para escrita
     with open(caminho_arquivo_log, 'w', encoding='utf-8') as log_file:
         # Mostra quantas gerações tem o treinamento
         log_file.write(f"Número de Gerações nesse treinamento: {numero_geracoes}\n")
+        log_file.write('\n')
+        # Lista para gerar o gráfico
+        melhores_por_geracao = []
         # Iteramos sobre o número de gerações
         for geracao in range(numero_geracoes):
             # Iteramos sobre os indivíduos dentro da população
@@ -198,7 +193,7 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
 
             # Selecionamos os melhores para reprodução
             melhores = selecao(populacao, int(0.2 * tamanho_populacao))
-            print("Melhores: ",melhores)
+            melhores_por_geracao.append(melhores[0])
 
             # Nova população é criada a partir da seleção dos melhores
             nova_populacao = melhores[:]
@@ -220,14 +215,23 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
             # Próxima geração
             populacao = nova_populacao
 
+        # Salvando o gráfico
+        melhor_fitnesses = [melhor.fitness for melhor in melhores_por_geracao]
+        plt.plot(melhor_fitnesses)
+        plt.title("Melhor Fitness por Geração")
+        plt.xlabel("Geração")
+        plt.ylabel("Fitness")
+        plt.savefig(f"{pasta_graficos}/grafico-{proximo_treinamento}.png")
+        plt.close()
+
     # Encerra o emulador
     env.close()
 
-
 # Parâmetros do algoritmo genético
-tamanho_populacao = 2
+tamanho_populacao = 1
 taxa_mutacao = 0.1
 numero_geracoes = 1
 
 # Executar o algoritmo genético
 resolver(tamanho_populacao, taxa_mutacao, numero_geracoes)
+

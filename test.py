@@ -1,6 +1,6 @@
 import gym_super_mario_bros
 from nes_py.wrappers import JoypadSpace
-from gym_super_mario_bros.actions import SIMPLE_MOVEMENT
+from gym_super_mario_bros.actions import COMPLEX_MOVEMENT
 import random
 import os
 import matplotlib.pyplot as plt
@@ -14,7 +14,8 @@ if not os.path.exists(pasta_graficos):
     os.makedirs(pasta_graficos)
 
 # Definindo as ações como lista
-actions = list(range(len(SIMPLE_MOVEMENT)))
+actions = list(range(len(COMPLEX_MOVEMENT)))
+
 
 # Classe para representar um indivíduo ou solução
 class Solution:
@@ -26,8 +27,21 @@ class Solution:
         # A cada 1 segundo 20 ações são realizadas, o tempo da fase é 400 segundos
         # Portanto 20 x 400 = 8000 posições
         else:
-            self.cromossomo = [random.choice(actions) for i in range(8000)]
+            self.cromossomo = self.gerar_cromossomo_aleatorio()
         self.fitness = 0
+
+    def gerar_cromossomo_aleatorio(self):
+        cromossomo = []
+        while len(cromossomo) < 8000:
+            # Escolhe uma ação aleatória
+            acao = random.choice(actions)
+            # Escolhe um número aleatório de repetições para a ação (entre 4 e 10)
+            repeticoes = random.randint(4, 10)
+            # Adiciona a ação ao cromossomo repetindo-a o número de vezes escolhido
+            cromossomo.extend([acao] * repeticoes)
+        # Corta o cromossomo para ter exatamente 8000 ações
+        return cromossomo[:8000]
+
 
 # Função para avaliar um indivíduo
 def avaliar(individuo, env):
@@ -35,6 +49,7 @@ def avaliar(individuo, env):
     # Iniciamos o game por um while com um fitness zerado
     done = False
     fitness = 0
+    tempo = 0
     # Inicializamos o índice do cromossomo zerado
     cromossomo_index = 0
 
@@ -51,35 +66,102 @@ def avaliar(individuo, env):
 
         # Executando a ação no ambiente e obtendo as recompensas e informações
         observation, reward, done, info = env.step(action)
+        # print(info)
 
         # Atualizando o fitness com base nas informações do ambiente
         if info['flag_get'] == True:
-            fitness += 10000
+            fitness += 100000
 
         # Podemos aumentar o fitness se o personagem avançar pelo mapa
-        if info['x_pos'] < 300:
-            fitness += 10
-
-        if info['x_pos'] < 200:
+        if info['x_pos'] > 200:
+            fitness += 20
+        if info['x_pos'] > 400:
+            fitness += 30
+        if info['x_pos'] > 600:
+            fitness += 40
+        if info['x_pos'] > 800:
             fitness += 50
-
-        if info['x_pos'] < 100:
+        if info['x_pos'] > 1000:
+            fitness += 60
+        if info['x_pos'] > 1200:
+            fitness += 70
+        if info['x_pos'] > 1400:
+            fitness += 80
+        if info['x_pos'] > 1600:
+            fitness += 90
+        if info['x_pos'] > 1800:
             fitness += 100
-
-        if info['x_pos'] < 50:
+        if info['x_pos'] > 2000:
+            fitness += 110
+        if info['x_pos'] > 2200:
+            fitness += 120
+        if info['x_pos'] > 2400:
+            fitness += 130
+        if info['x_pos'] > 2600:
+            fitness += 140
+        if info['x_pos'] > 2800:
             fitness += 150
-
-        if info['x_pos'] < 25:
+        if info['x_pos'] > 3000:
+            fitness += 160
+        if info['x_pos'] > 3200:
+            fitness += 170
+        if info['x_pos'] > 3400:
+            fitness += 180
+        if info['x_pos'] > 3600:
+            fitness += 190
+        if info['x_pos'] > 3800:
             fitness += 200
-
-        if info['x_pos'] < 10:
+        if info['x_pos'] > 4000:
+            fitness += 210
+        if info['x_pos'] > 4200:
+            fitness += 220
+        if info['x_pos'] > 4400:
+            fitness += 230
+        if info['x_pos'] > 4600:
+            fitness += 240
+        if info['x_pos'] > 4800:
             fitness += 250
+        if info['x_pos'] > 5000:
+            fitness += 260
+        if info['x_pos'] > 5200:
+            fitness += 270
+        if info['x_pos'] > 5400:
+            fitness += 280
+        if info['x_pos'] > 5600:
+            fitness += 290
+        if info['x_pos'] > 5800:
+            fitness += 300
+        if info['x_pos'] > 6000:
+            fitness += 310
+        if info['x_pos'] > 6200:
+            fitness += 320
+        if info['x_pos'] > 6400:
+            fitness += 330
+        if info['x_pos'] > 6600:
+            fitness += 340
+        if info['x_pos'] > 6800:
+            fitness += 350
+        if info['x_pos'] > 7000:
+            fitness += 360
+        if info['x_pos'] > 7200:
+            fitness += 370
+        if info['x_pos'] > 7400:
+            fitness += 380
+        if info['x_pos'] > 7600:
+            fitness += 390
+        if info['x_pos'] > 7800:
+            fitness += 400
+        if info['x_pos'] > 8000:
+            fitness += 410
+
 
         # Renderiza o jogo
         env.render()
 
     # No final, atribuímos o valor total do fitness
     individuo.fitness = fitness
+
+
 
 # Encontra o melhor indivíduo para a reprodução
 def encontrar_melhor_fitness(populacao):
@@ -93,6 +175,7 @@ def encontrar_melhor_fitness(populacao):
             melhor_individuo = individuo
 
     return melhor_individuo
+
 
 # Função para realizar a seleção dos melhores indivíduos
 def selecao(populacao, melhores):
@@ -116,6 +199,7 @@ def selecao(populacao, melhores):
 
     return melhores_individuos
 
+
 # Função para realizar o cruzamento de dois indivíduos
 def crossover(individuo1, individuo2):
     # Verifica se a quantidade de ações
@@ -134,6 +218,7 @@ def crossover(individuo1, individuo2):
     filho2.cromossomo = individuo2.cromossomo[:ponto_corte] + individuo1.cromossomo[ponto_corte:]
     return filho1, filho2
 
+
 # Função para realizar a mutação em um indivíduo
 def mutacao(individuo, taxa_mutacao):
     # Definimos a taxa como 0,1
@@ -143,12 +228,12 @@ def mutacao(individuo, taxa_mutacao):
             # Se sofrer, adicionamos uma ação aleatória
             individuo.cromossomo[i] = random.choice(actions)
 
+
 # Função para iniciar o treinamento
 def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
-
     # Criando o ambiente do emulador
     env = gym_super_mario_bros.make('SuperMarioBros-1-2-v0')
-    env = JoypadSpace(env, SIMPLE_MOVEMENT)
+    env = JoypadSpace(env, COMPLEX_MOVEMENT)
 
     # Iniciamos a população com indivíduos aleatórios
     populacao = [Solution() for i in range(tamanho_populacao)]
@@ -185,6 +270,7 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
 
             # Salvar o melhor fitness no arquivo de log
             log_file.write(f"Geração {geracao}: Melhor fitness -> {melhor_fitness}\n")
+            log_file.write("\n")
 
             # Adicionar os dados de cada indivíduo na geração ao arquivo de log
             for i, individuo in enumerate(populacao):
@@ -227,11 +313,11 @@ def resolver(tamanho_populacao, taxa_mutacao, numero_geracoes):
     # Encerra o emulador
     env.close()
 
+
 # Parâmetros do algoritmo genético
-tamanho_populacao = 1
-taxa_mutacao = 0.1
-numero_geracoes = 1
+tamanho_populacao = 10
+taxa_mutacao = 0.001
+numero_geracoes = 3
 
 # Executar o algoritmo genético
 resolver(tamanho_populacao, taxa_mutacao, numero_geracoes)
-

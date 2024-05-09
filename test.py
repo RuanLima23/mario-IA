@@ -83,6 +83,8 @@ def avaliar(individuo, env):
             fitness += 50
         if info['x_pos'] > 1000:
             fitness += 60
+            if info['time'] < 200:
+                fitness -= 50
         if info['x_pos'] > 1200:
             fitness += 70
         if info['x_pos'] > 1400:
@@ -93,6 +95,8 @@ def avaliar(individuo, env):
             fitness += 100
         if info['x_pos'] > 2000:
             fitness += 110
+            if info['time'] < 200:
+                fitness -= 50
         if info['x_pos'] > 2200:
             fitness += 120
         if info['x_pos'] > 2400:
@@ -103,6 +107,8 @@ def avaliar(individuo, env):
             fitness += 150
         if info['x_pos'] > 3000:
             fitness += 160
+            if info['time'] < 100:
+                fitness -= 50
         if info['x_pos'] > 3200:
             fitness += 170
         if info['x_pos'] > 3400:
@@ -113,6 +119,8 @@ def avaliar(individuo, env):
             fitness += 200
         if info['x_pos'] > 4000:
             fitness += 210
+            if info['time'] < 100:
+                fitness -= 50
         if info['x_pos'] > 4200:
             fitness += 220
         if info['x_pos'] > 4400:
